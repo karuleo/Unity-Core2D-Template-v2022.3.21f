@@ -1,0 +1,59 @@
+using UnityEngine;
+
+[RequireComponent(typeof(PlayerStats))]
+public class PlayerHealth : MonoBehaviour
+{
+    [Header("Health Settings")]
+    public float currentHp;
+    public float maxHp;
+
+    private PlayerStats stats;
+    private PlayerRoll roll;
+
+    private void Awake()
+    {
+        stats = GetComponent<PlayerStats>();
+        roll = GetComponent<PlayerRoll>();
+    }
+
+    public void TakeDamage(float incomingDamage)
+    {
+        // 1. 무적 상태 체크 (구르기나 무적 버프 등)
+        if (roll.IsInvincible) return;
+
+        // 2. PlayerStats에서 장비/버프가 전부 계산된 최종 방어력 가져오기
+        float currentDefense = stats.defense.Value;
+
+        // 3. 방어력 계산식을 통한 최종 데미지 산출
+        float finalDamage = CalculateDamage(incomingDamage, currentDefense);
+
+        // 4. 체력 차감 및 사망 처리
+        currentHp -= finalDamage;
+        currentHp = Mathf.Max(currentHp, 0f); // 체력이 0 미만으로 내려가지 않도록 방지
+
+        Debug.Log($"원래 데미지: {incomingDamage} | 방어력: {currentDefense} | 최종 받은 데미지: {finalDamage} | 남은 HP: {currentHp}");
+
+        if (currentHp <= 0)
+        {
+            Die();
+        }
+    }
+
+    // 방어력에 따른 데미지 감소 계산 메서드
+    private float CalculateDamage(float damage, float defense)
+    {
+        // --- [방식 A] 리그오브레전드/다크소울 스타일 (방어율 공식 - 강력 추천) ---
+        // 방어력이 높아질수록 효율이 감소하며, 데미지가 0 이하로 떨어져 음수가 되는 버그를 방지함
+        // 공식: 받은 데미지 = 원본 데미지 * (100 / (100 + 방어력))
+        float damageReduction = 100f / (100f + defense);
+        float finalDamage = damage * damageReduction;
+
+        return Mathf.Round(finalDamage); // 소수점 정리를 위해 반올림
+    }
+
+    private void Die()
+    {
+        Debug.Log("플레이어가 사망했습니다.");
+        // 사망 애니메이션, 리스폰 로직 등 추가
+    }
+}
